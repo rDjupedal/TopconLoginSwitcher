@@ -1,0 +1,21 @@
+#panel1 { 
+    display: flex;
+    margin: 12px;
+}
+
+#logOutBtn {
+    margin-left: 12px;
+}
+
+body {   
+    background: rgba(0, 0, 128, 0.3);
+    width: 400px;
+}
+
+table, th, td {
+    border:0px solid black;
+    border-collapse: collapse;
+    text-align: left;
+    white-space: nowrap;
+    padding-left: 12px;
+}
