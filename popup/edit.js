@@ -14,7 +14,7 @@ loadServerBtn.addEventListener("click", loadFromServer);
 document.addEventListener("DOMContentLoaded", loadSettings);
 
 function clearData() {
-    browser.storage.sync.clear();
+    browser.storage.local.clear();
     setStatus("All data for this extension have been cleared");
     textBox.value = "";
 }
@@ -71,7 +71,7 @@ function defaultSettings() {
 function loadSettings() {
     console.log("loading settings..");
 
-    browser.storage.sync.get("customers")
+    browser.storage.local.get("customers")
     .then((customers) => {
         //console.log(customers), (error) => console.log(error)
         //textBox.value = JSON.stringify(customers.customers, null, null);
@@ -83,6 +83,6 @@ function loadSettings() {
 function saveSettings() {
     
     let customers = textBox.value;
-    browser.storage.sync.set( {"customers" : customers} );
+    browser.storage.local.set( {"customers" : customers} );
     setStatus("Customers saved..");    
 }

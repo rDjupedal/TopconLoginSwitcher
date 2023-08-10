@@ -46,7 +46,7 @@ readRecent().then((recentC) => {
 })
 
 async function readRecent() {
-    let recent = await browser.storage.sync.get("recent")
+    let recent = await browser.storage.local.get("recent")
         .then((r) => {
             //console.log("read recent from storage: " + JSON.stringify(r));
             if (r) return r;
@@ -97,13 +97,13 @@ function addToRecent(newEntry) {
 
     // Add the new entry to the top of the list
     recent[0] = newEntry;
-    browser.storage.sync.set( {"recent" : JSON.stringify(recent)} );
+    browser.storage.local.set( {"recent" : JSON.stringify(recent)} );
 
 }
 
 async function readLogins() {
 
-    let customers = await browser.storage.sync.get("customers")
+    let customers = await browser.storage.local.get("customers")
         .then((customers) => {
             return customers.customers;
         });
