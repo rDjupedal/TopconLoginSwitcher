@@ -8,4 +8,4 @@ The recommended usage is manually editing the json data within the extension. In
 
 Do not use this extension for any sensitive data / logins, as the logins are not stored in a secure way. 
 
-To in stall it, simply open the .xpi file in your Firefox browser.
+To install, simply open the .xpi file in your Firefox browser.
