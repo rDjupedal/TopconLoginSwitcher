@@ -197,9 +197,47 @@ async function login(customer) {
 }
 
 async function getFlowId() {
+	
+	console.log("Getting flow id..");
     const url = "https://sitelink.topcon.com/login";
-    let data = await window.fetch(url);
-    return data.url.split("flowId=")[1];
+	
+	try {
+		
+		const response = await fetch(url);
+		if (!response.ok) {
+			console.log("ERROR")
+			throw new Error(`Response status: ${response.status}`);
+		}
+		
+		// Search retrieved HTML for path
+		const html = await response.text();
+        console.log(typeof(html));
+		console.log(html);
+		const startIndex = html.indexAt(`form method="POST" action="`);
+		console.log("index: " + startIndex);
+		
+	} catch (error) {
+		console.error(error.message);
+		console.log(error);
+	}
+	
+	
+    
+	//let data = await window.fetch(url);
+	//console.log("response from fetch request:\n" + data);
+	/*
+	for (i in data) {
+		console.log(i + ":\t" + data[i]);
+	}
+	*/
+	console.log("response status: " + data.status);
+	console.log("rjson:\t" + data.json);
+  
+	//let json = await data.json();
+	//console.log(json);
+	//console.log(data.json());
+    //return data.url.split("flowId=")[1];
+	return "dummy";
 }
 
 async function logOut() {
