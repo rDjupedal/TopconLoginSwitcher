@@ -157,7 +157,51 @@ async function login(customer) {
         username : customer.username,
         password : customer.password
     }
- 
+
+
+    console.log("Getting flow id..");
+    const url = "https://sitelink.topcon.com/login";
+
+    try {
+
+        fetch(url).then(response => {
+            console.log(typeof(response) + "\n" + response);
+            //const html = response.text();
+            response.text().then(html => {
+                const startIndex = html.indexOf(`form method="POST" action="`);
+
+                console.log("position:  " + startIndex);
+            })
+
+        })
+
+    } catch (error) {
+        console.error(error.message);
+        console.log(error);
+    }
+
+    /*
+    const response = await fetch(url);
+    if (!response.ok) {
+        console.log("ERROR")
+        throw new Error(`Response status: ${response.status}`);
+    }
+
+    // Search retrieved HTML for path
+    const html = await response.text();
+    console.log(typeof(html));
+    console.log(html);
+    const startIndex = html.indexAt(`form method="POST" action="`);
+    console.log("index: " + startIndex);
+
+
+
+
+
+
+
+
+
     // Get flow id
     let flowId = await getFlowId();
     if (!flowId) window.alert("Could not get flow id!");
@@ -194,6 +238,8 @@ async function login(customer) {
         })
     });
 
+
+     */
 }
 
 async function getFlowId() {
