@@ -190,15 +190,62 @@ async function login(customer) {
                     if (!response.ok) console.log(response.statusText);
                     response.text().then(html => {
                         //console.log(html);
-
                         const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
                         const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
                         const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
-
                         console.log(ref+ "\n" + connId + "\n" + resumePath);
+                        let t = `test` + ref;
+                        const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
+                        const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
+                        fetch(url, {
+                            method: "POST",
+                            body: body,
+                            headers: {"Content-Type": "application/x-www-form-urlencoded"}
+                        }).then(response => {
+                            if (!response.ok) console.log(response.statusText);
+                            console.log(response.status);
+                            console.log(response.url);
+                            const flowId = response.url.match(/flowId=(.*)/)[1];
+                            console.log(flowId);
+                            response.text().then(html => {
+                                console.log(response);
+                            })
 
+
+                            // Send credentials
+                            const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
+
+                            fetch(postUrl, {
+                                method: "POST",
+                                body: JSON.stringify(cred),
+                                headers: {"Content-Type" : "application/vnd.pingidentity.usernamePassword.check+json"}
+                            })
+                                .then((data) => {
+                                    console.log("Login status: " + data.statusText);
+                                    if (data.status !== 200) {
+                                        const sDiv = document.getElementById("statusDiv")            ;
+                                        sDiv.innerHTML = "Error logging in as " + customer.username + "!";
+                                        return;
+                                    }
+
+                                    return data.json();
+                                })
+                                .then((json) => {
+                                    //console.log("finally: " + JSON.stringify(json))
+                                    let redirectUrl = json.resumeUrl;
+                                    console.log(redirectUrl);
+
+                                    // Get the current tab and load the redirect page
+                                    browser.tabs.query({ currentWindow: true, highlighted : true }).then((x) =>
+                                    {
+                                        const tabId = x[0].id;
+                                        browser.tabs.update(tabId, {url : redirectUrl} );
+                                        window.close();
+                                    })
+                                });
+
+                        });
                     });
-
                 })
             })
 
@@ -210,22 +257,7 @@ async function login(customer) {
     }
 
     /*
-    const response = await fetch(url);
-    if (!response.ok) {
-        console.log("ERROR")
-        throw new Error(`Response status: ${response.status}`);
-    }
 
-    // Search retrieved HTML for path
-    const html = await response.text();
-    console.log(typeof(html));
-    console.log(html);
-    const startIndex = html.indexAt(`form method="POST" action="`);
-    console.log("index: " + startIndex);
-
-    // Get flow id
-    let flowId = await getFlowId();
-    if (!flowId) window.alert("Could not get flow id!");
 
     // Send credentials
     const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
