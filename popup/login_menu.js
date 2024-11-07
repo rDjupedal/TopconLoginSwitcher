@@ -163,11 +163,6 @@ async function login(customer) {
     const url = "https://sitelink.topcon.com/login";
     const baseUrl = "https://token.us.auth.topcon.com"
     const srchExp = `form method="POST" action="`;
-    const data = {
-        subject : customer.username,
-        "clear.previous.selected.subject" : "",
-        "cancel.identifier.selection" : false
-    }
 
     try {
 
@@ -175,26 +170,19 @@ async function login(customer) {
             console.log(typeof(response) + "\n" + response);
             //const html = response.text();
             response.text().then(html => {
-                const startIndex = html.indexOf(srchExp) + srchExp.length;
-                const endIndex = html.indexOf(`"`, startIndex);
-                const posturl = baseUrl + html.substring(startIndex, endIndex);
-                console.log(posturl);
+                const postUrl = baseUrl + html.match(/action="([^"]+)"/)[1];
 
-                fetch(posturl, {
+                fetch(postUrl, {
                     method: "POST",
-                    //body: data,
                     body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
                     headers: {"Content-Type" : "application/x-www-form-urlencoded"}
                 }).then(response => {
-                    //console.log(response.status);
                     if (!response.ok) console.log(response.statusText);
                     response.text().then(html => {
-                        //console.log(html);
                         const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
                         const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
                         const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
                         console.log(ref+ "\n" + connId + "\n" + resumePath);
-                        let t = `test` + ref;
                         const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
                         const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
                         fetch(url, {
@@ -243,7 +231,6 @@ async function login(customer) {
                                         window.close();
                                     })
                                 });
-
                         });
                     });
                 })
@@ -255,88 +242,6 @@ async function login(customer) {
         console.error(error.message);
         console.log(error);
     }
-
-    /*
-
-
-    // Send credentials
-    const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
-
-    fetch(postUrl, {
-        method: "POST",
-        body: JSON.stringify(cred),
-        headers: {"Content-Type" : "application/vnd.pingidentity.usernamePassword.check+json"}
-    })
-    .then((data) => {
-        console.log("Login status: " + data.statusText);
-        if (data.status != 200) {
-            const sDiv = document.getElementById("statusDiv")            ;
-            sDiv.innerHTML = "Error logging in as " + customer.username + "!";
-            return;
-        }
-        
-        return data.json();
-    })
-    .then((json) => {
-        //console.log("finally: " + JSON.stringify(json))
-        let redirectUrl = json.resumeUrl;
-        console.log(redirectUrl);
-        
-        // Get the current tab and load the redirect page
-        browser.tabs.query({ currentWindow: true, highlighted : true }).then((x) => 
-        {
-            const tabId = x[0].id;
-            browser.tabs.update(tabId, {url : redirectUrl} );
-            window.close();
-        })
-    });
-
-
-     */
-}
-
-async function getFlowId() {
-	
-	console.log("Getting flow id..");
-    const url = "https://sitelink.topcon.com/login";
-	
-	try {
-		
-		const response = await fetch(url);
-		if (!response.ok) {
-			console.log("ERROR")
-			throw new Error(`Response status: ${response.status}`);
-		}
-		
-		// Search retrieved HTML for path
-		const html = await response.text();
-        console.log(typeof(html));
-		console.log(html);
-		const startIndex = html.indexAt(`form method="POST" action="`);
-		console.log("index: " + startIndex);
-		
-	} catch (error) {
-		console.error(error.message);
-		console.log(error);
-	}
-	
-	
-    
-	//let data = await window.fetch(url);
-	//console.log("response from fetch request:\n" + data);
-	/*
-	for (i in data) {
-		console.log(i + ":\t" + data[i]);
-	}
-	*/
-	console.log("response status: " + data.status);
-	console.log("rjson:\t" + data.json);
-  
-	//let json = await data.json();
-	//console.log(json);
-	//console.log(data.json());
-    //return data.url.split("flowId=")[1];
-	return "dummy";
 }
 
 async function logOut() {
