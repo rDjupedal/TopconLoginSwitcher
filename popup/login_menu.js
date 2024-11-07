@@ -161,6 +161,13 @@ async function login(customer) {
 
     console.log("Getting flow id..");
     const url = "https://sitelink.topcon.com/login";
+    const baseUrl = "https://token.us.auth.topcon.com"
+    const srchExp = `form method="POST" action="`;
+    const data = {
+        subject : customer.username,
+        "clear.previous.selected.subject" : "",
+        "cancel.identifier.selection" : false
+    }
 
     try {
 
@@ -168,9 +175,31 @@ async function login(customer) {
             console.log(typeof(response) + "\n" + response);
             //const html = response.text();
             response.text().then(html => {
-                const startIndex = html.indexOf(`form method="POST" action="`);
+                const startIndex = html.indexOf(srchExp) + srchExp.length;
+                const endIndex = html.indexOf(`"`, startIndex);
+                const posturl = baseUrl + html.substring(startIndex, endIndex);
+                console.log(posturl);
 
-                console.log("position:  " + startIndex);
+                fetch(posturl, {
+                    method: "POST",
+                    //body: data,
+                    body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
+                    headers: {"Content-Type" : "application/x-www-form-urlencoded"}
+                }).then(response => {
+                    //console.log(response.status);
+                    if (!response.ok) console.log(response.statusText);
+                    response.text().then(html => {
+                        //console.log(html);
+
+                        const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
+                        const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
+                        const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
+
+                        console.log(ref+ "\n" + connId + "\n" + resumePath);
+
+                    });
+
+                })
             })
 
         })
@@ -193,14 +222,6 @@ async function login(customer) {
     console.log(html);
     const startIndex = html.indexAt(`form method="POST" action="`);
     console.log("index: " + startIndex);
-
-
-
-
-
-
-
-
 
     // Get flow id
     let flowId = await getFlowId();
