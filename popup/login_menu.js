@@ -1,13 +1,12 @@
 const RECENT_NUM = 5;
-
-console.log("login_menu loaded..");
-// Uncomment temp to clear saved data
-//browser.storage.sync.clear();
-
+const recent = new Array(RECENT_NUM);
+const customerTable = document.getElementById("customerTable");
 const logOutBtn = document.getElementById("logOutBtn");
+const recentTable = document.getElementById("recentTable");
+const filterTextBox = document.getElementById("textFilter");
+
 logOutBtn.addEventListener("click", logOut);
 
-const filterTextBox = document.getElementById("textFilter");
 filterTextBox.addEventListener("input", e => {
     customerTable.innerHTML = "";
     updateList(filterTextBox.value);    
@@ -17,9 +16,8 @@ filterTextBox.addEventListener("input", e => {
 filterTextBox.focus();
 
 // Load customers from storage
-var customers = [];
+let customers = [];
 readLogins().then((readCustomers) => {
-    //customers = readCustomers;
 
     // Sort the customers alphabetically
     customers = readCustomers.sort((a, b) => {
@@ -32,75 +30,69 @@ readLogins().then((readCustomers) => {
 });
 
 // Load recent customers from storage
-var recent = new Array(RECENT_NUM);
-readRecent().then((recentC) => {
-    //if (recentC) this.recent = JSON.parse(recentC.recent);
-    if (recentC) data = JSON.parse(recentC.recent);
+browser.storage.local.get("recent").then((r) => {
+    console.log("read recent from storage: " + JSON.stringify(r));
+
+    if (r) data = JSON.parse(r.recent);
+    console.log(data);
 
     for (let i = 0; i < RECENT_NUM; i++) {
-        this.recent[i] = data[i];
+        recent[i] = data[i];
     }
 
-    recentTable.innerHTML = "";
     updateRecent();
-})
+});
 
-async function readRecent() {
-    let recent = await browser.storage.local.get("recent")
-        .then((r) => {
-            //console.log("read recent from storage: " + JSON.stringify(r));
-            if (r) return r;
-        })
-    return recent;
-}
-
+/**
+ * Clear and refresh the list of recent customers
+ */
 function updateRecent() {
-    //console.log("update recent called, recent: " + JSON.stringify(recent));
-
-    let recentTable = document.getElementById("recentTable");
     recentTable.innerHTML = "";
     for (let i = 0; i < recent.length; i++) {
-
         if (!recent[i]) continue;
-        let a = document.createElement("a")
-        let link = document.createTextNode(recent[i].customer);
+        const a = document.createElement("a")
+        const link = document.createTextNode(recent[i].customer);
         a.appendChild(link);
-
         a.title = recent[i].customer;
-        a.addEventListener("click", e => { login(recent[i]); })
+        a.addEventListener("click", e => login(recent[i]));
         
-        let col = document.createElement("th");
+        const col = document.createElement("th");
         col.appendChild(a);
-        let row = document.createElement("tr");
+        const row = document.createElement("tr");
         row.appendChild(col);
-        //customerTable.prepend(row);
         recentTable.appendChild(row);
     }
-    
 }
 
+/**
+ * Add a customer to the top of recent logins
+ * @param newEntry new login to add
+ */
 function addToRecent(newEntry) {
 
     let moveUntilIndex = recent.length - 1;
 
     // Check if already exists
-    for (i = 0; i < RECENT_NUM; i++) {
+    for (let i = 0; i < RECENT_NUM; i++) {
         if (recent[i] && recent[i].username === newEntry.username) {
             moveUntilIndex = i;
         }
     }
 
-    //Move every entry down one step
-    for (i = moveUntilIndex; i > 0; i--) {
+    // Move every entry down one step
+    for (let i = moveUntilIndex; i > 0; i--) {
         recent[i] = recent[i - 1];
     }
 
     // Add the new entry to the top of the list
     recent[0] = newEntry;
     browser.storage.local.set( {"recent" : JSON.stringify(recent)} );
-
 }
 
+/**
+ * Get stored login credentials from browser storage
+ * @returns {Promise<any>}
+ */
 async function readLogins() {
 
     let customers = await browser.storage.local.get("customers")
@@ -111,14 +103,15 @@ async function readLogins() {
     return JSON.parse(customers);
 }
 
-// Populate a list of customers links
+/**
+ * Populate a list of customers links
+ * @param filter
+ * @returns {Promise<void>}
+ */
 async function updateList(filter) {
 
     // If no filter is used show recent logins
-    if (!filter) updateRecent()
-    else recentTable.innerHTML = "";
-
-    customerTable = document.getElementById("customerTable");
+    if (!filter) updateRecent();
 
     for (let customer of customers) {
         //console.log("creating: " + JSON.stringify(customer));
@@ -138,19 +131,21 @@ async function updateList(filter) {
         row.appendChild(col);
         customerTable.appendChild(row);  
     }
-
 }
 
+/**
+ * Do the whole process of logging out of any current session and then logging into the chosen one
+ * @param customer
+ * @returns {Promise<void>}
+ */
 async function login(customer) {
 
     addToRecent(customer);
     updateRecent();
 
     await logOut();
-    closeTab();
-    
-    console.log("logging in..")
-    
+    await closeTab();
+
     browser.tabs.create({});
 
     const cred = {
@@ -158,87 +153,84 @@ async function login(customer) {
         password : customer.password
     }
 
-
-    console.log("Getting flow id..");
     const url = "https://sitelink.topcon.com/login";
     const baseUrl = "https://token.us.auth.topcon.com"
-    const srchExp = `form method="POST" action="`;
 
     try {
 
         fetch(url).then(response => {
-            console.log(typeof(response) + "\n" + response);
-            //const html = response.text();
-            response.text().then(html => {
-                const postUrl = baseUrl + html.match(/action="([^"]+)"/)[1];
+            console.log(typeof (response) + "\n" + response);
+            return response.text();
 
-                fetch(postUrl, {
-                    method: "POST",
-                    body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
-                    headers: {"Content-Type" : "application/x-www-form-urlencoded"}
-                }).then(response => {
-                    if (!response.ok) console.log(response.statusText);
-                    response.text().then(html => {
-                        const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
-                        const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
-                        const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
-                        console.log(ref+ "\n" + connId + "\n" + resumePath);
-                        const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
-                        const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
-                        fetch(url, {
-                            method: "POST",
-                            body: body,
-                            headers: {"Content-Type": "application/x-www-form-urlencoded"}
-                        }).then(response => {
-                            if (!response.ok) console.log(response.statusText);
-                            console.log(response.status);
-                            console.log(response.url);
-                            const flowId = response.url.match(/flowId=(.*)/)[1];
-                            console.log(flowId);
-                            response.text().then(html => {
-                                console.log(response);
-                            })
+        }).then(html => {
+            const postUrl = baseUrl + html.match(/action="([^"]+)"/)[1];
+            return fetch(postUrl, {
+                method: "POST",
+                body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
+                headers: {"Content-Type": "application/x-www-form-urlencoded"}
+            });
 
+        }).then(response => {
+            if (!response.ok) console.log(response.statusText);
+            return response.text();
 
-                            // Send credentials
-                            const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
+        }).then(html => {
+            const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
+            const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
+            const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
+            console.log(ref + "\n" + connId + "\n" + resumePath);
+            const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
+            const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
+            console.log("Getting flow id..");
 
-                            fetch(postUrl, {
-                                method: "POST",
-                                body: JSON.stringify(cred),
-                                headers: {"Content-Type" : "application/vnd.pingidentity.usernamePassword.check+json"}
-                            })
-                                .then((data) => {
-                                    console.log("Login status: " + data.statusText);
-                                    if (data.status !== 200) {
-                                        const sDiv = document.getElementById("statusDiv")            ;
-                                        sDiv.innerHTML = "Error logging in as " + customer.username + "!";
-                                        return;
-                                    }
+            return fetch(url, {
+                method: "POST",
+                body: body,
+                headers: {"Content-Type": "application/x-www-form-urlencoded"}
+            });
 
-                                    return data.json();
-                                })
-                                .then((json) => {
-                                    //console.log("finally: " + JSON.stringify(json))
-                                    let redirectUrl = json.resumeUrl;
-                                    console.log(redirectUrl);
+        }).then(response => {
+            if (!response.ok) console.log(response.statusText);
+            console.log(response.status);
+            console.log(response.url);
+            const flowId = response.url.match(/flowId=(.*)/)[1];
+            console.log(flowId);
 
-                                    // Get the current tab and load the redirect page
-                                    browser.tabs.query({ currentWindow: true, highlighted : true }).then((x) =>
-                                    {
-                                        const tabId = x[0].id;
-                                        browser.tabs.update(tabId, {url : redirectUrl} );
-                                        window.close();
-                                    })
-                                });
-                        });
-                    });
-                })
-            })
+            // Send credentials
+            const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
 
-        })
+            return fetch(postUrl, {
+                method: "POST",
+                body: JSON.stringify(cred),
+                headers: {"Content-Type": "application/vnd.pingidentity.usernamePassword.check+json"}
+            });
+
+        }).then((data) => {
+            console.log("Login status: " + data.statusText);
+            if (data.status !== 200) {
+                const sDiv = document.getElementById("statusDiv");
+                sDiv.innerHTML = "Error logging in as " + customer.username + "!";
+                return;
+            }
+
+            return data.json();
+
+        }).then((json) => {
+            //console.log(JSON.stringify(json))
+            let redirectUrl = json.resumeUrl;
+            console.log(redirectUrl);
+
+            // Get the current tab and load the redirect page
+            browser.tabs.query({currentWindow: true, highlighted: true}).then((tabs) => {
+                const tabId = tabs[0].id;
+                browser.tabs.update(tabId, {url: redirectUrl});
+                window.close();
+            });
+        });
 
     } catch (error) {
+        const sDiv = document.getElementById("statusDiv");
+        sDiv.innerHTML = "An error occurred:\n" + error.message;
         console.error(error.message);
         console.log(error);
     }
@@ -248,16 +240,15 @@ async function logOut() {
     console.log("logging out..")
 
     // REMOVE ALL TOPCON RELATED COOKIES
-    clearCookies("topcon.com");
-    clearCookies("topconpositioning.com");
+    await clearCookies("topcon.com");
+    await clearCookies("topconpositioning.com");
 }
 
 async function closeTab() {
-    browser.tabs.query({ currentWindow: true, highlighted : true }).then((x) => 
-        {
-            console.log(x[0]);
-            browser.tabs.remove(x[0].id);
-        })
+    browser.tabs.query({ currentWindow: true, highlighted : true }).then((x) => {
+        console.log(x[0]);
+        browser.tabs.remove(x[0].id);
+    })
 }
 
 async function clearCookies(domain) {
@@ -282,7 +273,6 @@ async function clearCookies(domain) {
 
         else console.log("no cookie found for domain " + domain);
 
-
         // REMOVE COOKIES
         console.log("Removing " + cookieList.length + " cookies..");
         for (let removeCookie of cookieList) {
@@ -291,6 +281,4 @@ async function clearCookies(domain) {
                 .then((result) => console.log("Removed " + removeCookie.url));
         }
     })
-
-
 }

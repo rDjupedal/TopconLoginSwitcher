@@ -1,4 +1,4 @@
-console.log("edit.js loaded");
+const URL = "http://192.168.10.61/sl2_logins.json";
 const saveBtn = document.getElementById("saveBtn");
 const clearBtn = document.getElementById("clearBtn");
 const textBox = document.getElementById("editText");
@@ -10,7 +10,6 @@ saveBtn.addEventListener("click", saveSettings);
 clearBtn.addEventListener("click", clearData);
 defaultBtn.addEventListener("click", defaultSettings);
 loadServerBtn.addEventListener("click", loadFromServer);
-
 document.addEventListener("DOMContentLoaded", loadSettings);
 
 function clearData() {
@@ -25,9 +24,8 @@ function setStatus(status) {
 
 async function loadFromServer() {
     setStatus("Loading from server..");
-    const url = "http://192.168.10.61/sl2_logins.json";
 
-    fetch(url, {cache : "reload"})
+    fetch(URL, {cache : "reload"})
         .then((response) => { 
             if (response.ok) {
                 response.json().then((data) => {
@@ -48,13 +46,13 @@ function defaultSettings() {
     console.log("setting default..");
 
     const testCustomer = {
-        "customer" : "Ncgeo Support", 
+        "customer" : "Customer 1",
         "username" : "customer1@gmail.se",
         "password" : "123"
     }
 
     const testCustomer2 = {
-        "customer" : "Ncgeo test2", 
+        "customer" : "Customer 2",
         "username" : "customer2@shitmail.se",
         "password" : "456"
     }
@@ -62,10 +60,7 @@ function defaultSettings() {
     let customers = [];
     customers.push(testCustomer);
     customers.push(testCustomer2);
-
     textBox.value = JSON.stringify(customers);
-
-    //saveSettings();    
 }
 
 function loadSettings() {
@@ -73,15 +68,11 @@ function loadSettings() {
 
     browser.storage.local.get("customers")
     .then((customers) => {
-        //console.log(customers), (error) => console.log(error)
-        //textBox.value = JSON.stringify(customers.customers, null, null);
         if (customers.customers) textBox.value = customers.customers;
     });
-
 }
 
 function saveSettings() {
-    
     let customers = textBox.value;
     browser.storage.local.set( {"customers" : customers} );
     setStatus("Customers saved..");    
