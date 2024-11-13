@@ -161,89 +161,77 @@ async function login(customer) {
     const url = "https://sitelink.topcon.com/login";
     const baseUrl = "https://token.us.auth.topcon.com"
 
-    try {
-
-        fetch(url).then(response => {
-            console.log(typeof (response) + "\n" + response);
-            return response.text();
-
-        }).then(html => {
-            const postUrl = baseUrl + html.match(/action="([^"]+)"/)[1];
-            return fetch(postUrl, {
-                method: "POST",
-                body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
-                headers: {"Content-Type": "application/x-www-form-urlencoded"}
-            });
-
-        }).then(response => {
-            if (!response.ok) console.log(response.statusText);
-            return response.text();
-
-        }).then(html => {
-            const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
-            const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
-            const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
-            console.log(ref + "\n" + connId + "\n" + resumePath);
-            const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
-            const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
-            console.log("Getting flow id..");
-
-            return fetch(url, {
-                method: "POST",
-                body: body,
-                headers: {"Content-Type": "application/x-www-form-urlencoded"}
-            });
-
-        }).then(response => {
-            if (!response.ok) console.log(response.statusText);
-            console.log(response.status);
-            console.log(response.url);
-            const flowId = response.url.match(/flowId=(.*)/)[1];
-            console.log(flowId);
-
-            // Send credentials
-            const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
-
-            return fetch(postUrl, {
-                method: "POST",
-                body: JSON.stringify(cred),
-                headers: {"Content-Type": "application/vnd.pingidentity.usernamePassword.check+json"}
-            });
-
-        }).then((data) => {
-            console.log("Login status: " + data.statusText);
-            if (data.status !== 200) {
-
-                data.json().then(t => {
-                    console.log(t)
-                    const detailedErr = t["details"][0]["message"];
-                    alert("Error logging in as " + customer.username + "!\n" + (detailedErr? detailedErr : " "));
-                });
-
-                //throw new Error("Error logging in as " + customer.username + "!");
-
-            }
-
-            return data.json();
-
-        }).then((json) => {
-            //console.log(JSON.stringify(json))
-            let redirectUrl = json.resumeUrl;
-            console.log(redirectUrl);
-
-            // Get the current tab and load the redirect page
-            browser.tabs.query({currentWindow: true, highlighted: true}).then((tabs) => {
-                const tabId = tabs[0].id;
-                browser.tabs.update(tabId, {url: redirectUrl});
-                window.close();
-            });
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+        const postUrl = baseUrl + html.match(/action="([^"]+)"/)[1];
+        return fetch(postUrl, {
+            method: "POST",
+            body: "subject=" + customer.username + "&clear.previous.selected.subject=&cancel.identifier.selection=false",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"}
         });
 
-    } catch (error) {
-        alert("An error occurred:\n" + error.message);
+    }).then(response => {
+        if (!response.ok) console.log(response.statusText);
+        return response.text();
+
+    }).then(html => {
+        const ref = html.match(/<input type="hidden".*name="REF".*value="(.*)"/)[1];
+        const connId = html.match(/<input type="hidden".*name="connectionId".*value="(.*)"/)[1];
+        const resumePath = html.match(/<input type="hidden".*name="resumePath".*value="(.*)"/)[1];
+        console.log(ref + "\n" + connId + "\n" + resumePath);
+        const body = `REF=` + ref + `&allowInteraction="true"&connectionId=` + connId + `&resumePath=${resumePath}&reauth="false"`;
+        const url = "https://pfadapters.us.auth.topcon.com/choose_idp";
+        console.log("Getting flow id..");
+
+        return fetch(url, {
+            method: "POST",
+            body: body,
+            headers: {"Content-Type": "application/x-www-form-urlencoded"}
+        });
+
+    }).then(response => {
+        if (!response.ok) throw new Error(response.statusText);
+        const flowId = response.url.match(/flowId=(.*)/)[1];
+
+        // Send credentials
+        const postUrl = "https://id.auth.topcon.com/flows/" + flowId;
+
+        return fetch(postUrl, {
+            method: "POST",
+            body: JSON.stringify(cred),
+            headers: {"Content-Type": "application/vnd.pingidentity.usernamePassword.check+json"}
+        });
+
+    }).then((data) => {
+        console.log("Login status: " + data.statusText);
+        if (data.status !== 200) {
+            data.json().then(t => {
+                console.log(t)
+                const detailedErr = t["details"][0]["message"];
+                alert("Error logging in as " + customer.username + "!\n" + (detailedErr? detailedErr : " "));
+            });
+        }
+
+        return data.json();
+
+    }).then((json) => {
+        //console.log(JSON.stringify(json))
+        let redirectUrl = json.resumeUrl;
+        console.log(redirectUrl);
+
+        // Get the current tab and load the redirect page
+        browser.tabs.query({currentWindow: true, highlighted: true}).then((tabs) => {
+            const tabId = tabs[0].id;
+            browser.tabs.update(tabId, {url: redirectUrl});
+            window.close();
+        });
+    }).catch(error => {
+        //alert("An error occurred:\n" + error.message);
         console.error(error.message);
         console.log(error);
-    }
+    })
+
 }
 
 async function logOut() {
