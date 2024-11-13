@@ -2,10 +2,13 @@ const RECENT_NUM = 5;
 const recent = new Array(RECENT_NUM);
 const customerTable = document.getElementById("customerTable");
 const logOutBtn = document.getElementById("logOutBtn");
+const editBtn = document.getElementById("editBtn");
 const recentTable = document.getElementById("recentTable");
 const filterTextBox = document.getElementById("textFilter");
+const recentP = document.getElementById("recentP");
 
 logOutBtn.addEventListener("click", logOut);
+editBtn.addEventListener('click', function(){ location.href='edit.html' });
 
 filterTextBox.addEventListener("input", e => {
     customerTable.innerHTML = "";
@@ -33,11 +36,11 @@ readLogins().then((readCustomers) => {
 browser.storage.local.get("recent").then((r) => {
     console.log("read recent from storage: " + JSON.stringify(r));
 
-    if (r) data = JSON.parse(r.recent);
-    console.log(data);
-
-    for (let i = 0; i < RECENT_NUM; i++) {
-        recent[i] = data[i];
+    if (r.recent) {
+        const data = JSON.parse(r.recent);
+        for (let i = 0; i < RECENT_NUM; i++) {
+            recent[i] = data[i];
+        }
     }
 
     updateRecent();
@@ -62,6 +65,8 @@ function updateRecent() {
         row.appendChild(col);
         recentTable.appendChild(row);
     }
+
+    recentP.hidden = (recentTable.innerHTML.length === 0);
 }
 
 /**
@@ -208,9 +213,15 @@ async function login(customer) {
         }).then((data) => {
             console.log("Login status: " + data.statusText);
             if (data.status !== 200) {
-                const sDiv = document.getElementById("statusDiv");
-                sDiv.innerHTML = "Error logging in as " + customer.username + "!";
-                return;
+
+                data.json().then(t => {
+                    console.log(t)
+                    const detailedErr = t["details"][0]["message"];
+                    alert("Error logging in as " + customer.username + "!\n" + (detailedErr? detailedErr : " "));
+                });
+
+                //throw new Error("Error logging in as " + customer.username + "!");
+
             }
 
             return data.json();
@@ -229,8 +240,7 @@ async function login(customer) {
         });
 
     } catch (error) {
-        const sDiv = document.getElementById("statusDiv");
-        sDiv.innerHTML = "An error occurred:\n" + error.message;
+        alert("An error occurred:\n" + error.message);
         console.error(error.message);
         console.log(error);
     }
