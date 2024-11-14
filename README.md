@@ -1,6 +1,6 @@
 # Topcon Login Switcher
 
-This is a Firefox extension which has the purpose of making it easy and quick to switch between different logins when working with Topcon's webportals. 
+This is a Firefox extension which has the purpose of making it easy and quick to switch between different logins when working with Topcon's SiteLink v.2 webportal. 
 
 The extension uses json for adding and modifying logins. It can also fetch logins from a source online. 
 
