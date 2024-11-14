@@ -216,11 +216,8 @@ async function login(customer) {
         return data.json();
 
     }).then((json) => {
-        //console.log(JSON.stringify(json))
-        let redirectUrl = json.resumeUrl;
-        console.log(redirectUrl);
-
         // Get the current tab and load the redirect page
+        const redirectUrl = json.resumeUrl;
         browser.tabs.query({currentWindow: true, highlighted: true}).then((tabs) => {
             const tabId = tabs[0].id;
             browser.tabs.update(tabId, {url: redirectUrl});
