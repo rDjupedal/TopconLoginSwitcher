@@ -2,7 +2,7 @@
 
   "manifest_version": 2,
   "name": "Topcon Login Switcher",
-  "version": "1.6",
+  "version": "1.62",
 
   "description": "Topcon login switcher",
 
@@ -14,7 +14,7 @@
 
 
   "icons": {
-    "48": "favicon.ico"
+    "48": "icon.svg"
   },
 
   
@@ -23,7 +23,7 @@
   ],
 
   "browser_action": {
-    "default_icon": "favicon.ico",
+    "default_icon": "icon.svg",
     "default_title": "Topcon login switcher",
     "default_popup": "popup/menu.html"
   },
